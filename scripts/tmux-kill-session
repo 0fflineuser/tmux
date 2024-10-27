@@ -1,0 +1,5 @@
+#!/bin/bash
+
+tmux list-sessions -F '#{?session_attached,,#{session_name}}' |\
+    fzf --reverse -m --header=kill-session |\
+    xargs -I {} tmux kill-session -t {}
