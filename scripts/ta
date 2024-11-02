@@ -66,7 +66,7 @@ if [ "$DIR" == "--start" ]; then
     session_name=${path_name//./_}
 else
     # ask the user which directory to start in
-    _session_name=$(cd $DIR && ls -d */ | sed  "s|/||g" | fzf --reverse --header="Select project from $(basename $DIR) >")
+    _session_name=$(cd $DIR && ls -d */ | sed  "s|/||g" | fzf --reverse --header="Select project from $(basename $DIR) >" --preview="echo $DIR/{} | xargs tree -C -L 1")
     # _session_name=$(cd $DIR && ls -d */**/ | sed  "s|/$||g" | fzf --reverse --header="Select project from $(basename $DIR) >")
     session_name=${_session_name//./_}
     path_name=$DIR/$_session_name

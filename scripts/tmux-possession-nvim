@@ -3,7 +3,8 @@
 
 DIR="$HOME/.local/share/nvim/possession"
 
-_session_name=$(find "$DIR" -maxdepth 1 -name '*.json' -type f -printf '%f\n' | sed 's/.json$//' | fzf --reverse --header="Select a neovim session >")
+_session_name=$(find "$DIR" -maxdepth 1 -name '*.json' -type f -printf '%f\n' | sed 's/.json$//' | fzf --reverse --header="Select a neovim session >" --preview="cat $DIR/{}.json | jq .cwd | xargs tree -C -L 1" )
+
 session_name=${_session_name//./_}
 
 if [ -z "$session_name" ]; then
