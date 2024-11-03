@@ -16,7 +16,7 @@ else
   echo -e "\033[34mSelected docsets:\033[0m $selection\n" 
 fi
 
-read -r -p $'\033[33mEnter your search term:\033[0m ' search
+read -r -e -p $'\033[33mEnter your search term:\033[0m ' search
 
 echo "$search"
 
