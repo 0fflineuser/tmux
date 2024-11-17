@@ -4,24 +4,15 @@ docsets=($(dasht-docsets))
 declare search
 
 # fzf multiselect with tab/shift-tab for search in multiple docsets
-selection=$(printf "%s\n" "" "${docsets[@]}" | fzf --reverse -m --header=select-docset --preview="" | tr '\n' ' ')
-
-if [[ -z "$selection" ]]; then
-    exit 1
-fi
-
+selection=$(printf "%s\n" "" "${docsets[@]}" | fzf --reverse -m --header=select-docset --preview="" | tr '\n' ' ') && [[ -n "$selection" ]] || exit 1
 if [[ "$selection" = " " ]]; then
   echo -e "\033[32mAll docsets selected:\033[0m ${docsets[*]}\n"
 else
-  echo -e "\033[34mSelected docsets:\033[0m $selection\n" 
+  echo -e "\033[34mSelected docsets:\033[0m $selection\n"
 fi
 
-read -r -e -p $'\033[33mEnter your search term:\033[0m ' search
-
-echo "$search"
-
-if [[ -z "$search" ]]; then
-    exit 1
+if ! read -r -e -p $'\033[33mEnter your search term:\033[0m ' search; then
+  exit 1
 fi
 
-tmux split-window -h dasht "$search" ${selection[*]}
+tmux split-window -h dasht "${search:- }" ${selection[*]}
