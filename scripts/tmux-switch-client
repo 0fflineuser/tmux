@@ -1,6 +1,6 @@
 #!/bin/bash
 
-tmux list-sessions -F '#{session_name}' |\
+tmux list-sessions -F '#{session_name}' | grep -v '^scratch-' |\
     sed '/^$/d' |\
     fzf --reverse --header jump-to-session --preview 'tmux capture-pane -pt {}' \
     	--bind 'enter:execute(tmux switch-client -t {})+accept'
