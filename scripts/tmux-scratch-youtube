@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Function to detach clients from scratchpad sessions
+detach_scratch_clients() {
+  tmux list-clients | awk '$2 ~ /^scratch-/ {print substr($1, 1, length($1)-1)}' | xargs -r -I {} tmux detach-client -t {}
+}
+
+# Check if the current tmux session is 'scratch-youtube'
+current_session=$(tmux display-message -p "#{session_name}")
+
+if [[ "$current_session" == "scratch-youtube" ]]; then
+  # If already in the scratch-youtube session, detach all scratch clients
+  detach_scratch_clients
+else
+  # If scratch-youtube session exists, attach to it in a popup
+  if tmux has-session -t scratch-youtube; then
+    tmux display-popup -B -h 100% -w 100% -E 'tmux attach-session -t scratch-youtube'
+  else
+    # Otherwise, create the session, disable status bar, and attach
+    tmux display-popup -B -h 100% -w 100% -E "tmux new-session -d -c $HOME -s scratch-youtube magic-tape.sh && tmux set-option -t scratch-youtube status off && tmux attach-session -t scratch-youtube"
+  fi
+fi
