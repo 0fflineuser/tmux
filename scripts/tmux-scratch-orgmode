@@ -1,9 +1,7 @@
 #!/bin/bash
 
-# Function to detach clients from scratchpad sessions
-detach_scratch_clients() {
-  tmux list-clients | awk '$2 ~ /^scratch-/ {print substr($1, 1, length($1)-1)}' | xargs -r -I {} tmux detach-client -t {}
-}
+# shellcheck source=./utils
+source "$(dirname "$0")/utils"
 
 # Check if the current tmux session is 'scratch-orgmode'
 current_session=$(tmux display-message -p "#{session_name}")
