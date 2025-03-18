@@ -3,5 +3,5 @@
 tmux list-sessions -F '#{session_name}' | grep -v '^scratch-' |
   sed '/^$/d' |
   fzf --reverse --header jump-to-session \
-    --preview 'tmux capture-pane -pt {} | bat --color=always' \
+    --preview 'tmux capture-pane -pt {} | bat --color=always -pl sh' \
     --bind 'enter:execute(tmux switch-client -t {})+accept'
