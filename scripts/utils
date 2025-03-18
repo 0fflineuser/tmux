@@ -1,5 +1,5 @@
 #!/bin/bash
 
 detach_scratch_clients() {
-  tmux list-clients -F '#{client_name} #{session_name}' | awk '$2 ~ /^scratch-/ {print $1}' | xargs -r -I {} tmux detach-client -t {}
+  tmux list-clients -F '#{client_name} #{session_name}' | awk '$2 ~ /^scratch-/ {print $2}' | xargs -r -I {} tmux detach-client -s {}
 }
