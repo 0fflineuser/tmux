@@ -3,11 +3,18 @@
 
 DIR="$HOME/.local/share/nvim/possession"
 
-_session_name=$(find "$DIR" -maxdepth 1 -name '*.json' -type f -printf '%f\n' | sed 's/.json$//' | fzf --reverse --header="Select a neovim session >" --preview="cat $DIR/{}.json | jq .cwd | xargs tree -C -L 1")
+_session_name=$(find "${DIR}" -maxdepth 1 -name '*.json' -type f -printf '%f\n' | sed 's/.json$//' | fzf \
+  --no-border \
+  --height=100% \
+  --bind 'ctrl-/:toggle-preview' \
+  --exact \
+  --reverse \
+  --header="Select a neovim session >" \
+  --preview="cat ${DIR}/{}.json | jq .cwd | xargs tree -C -L 1")
 
 session_name=${_session_name//./_}
 
-if [ -z "$session_name" ]; then
+if [ -z "${session_name}" ]; then
   exit 1
 fi
 
@@ -16,24 +23,24 @@ not_in_tmux() {
 }
 
 session_exists() {
-  tmux has-session -t "=$session_name" 2>/dev/null
+  tmux has-session -t "=${session_name}" 2>/dev/null
 }
 
-path_name=$(jq -r '.cwd' "$DIR/$_session_name.json")
+path_name=$(jq -r '.cwd' "${DIR}/${_session_name}.json")
 
 create_if_needed_and_attach() {
   if not_in_tmux; then
     if ! session_exists; then
-      tmux new-session -Ad -s "$session_name" -c $path_name
-      tmux send-keys -t "$session_name" "nvim -c \":lua require('possession.session').load('$_session_name')\"" Enter
+      tmux new-session -Ad -s "${session_name}" -c "${path_name}"
+      tmux send-keys -t "${session_name}" "nvim -c \":lua require('possession.session').load('${_session_name}')\"" Enter
     fi
-    tmux new-session -As "$session_name" -c $path_name
+    tmux new-session -As "${session_name}" -c "${path_name}"
   else
     if ! session_exists; then
-      tmux new-session -Ad -s "$session_name" -c $path_name
-      tmux send-keys -t "$session_name" "nvim -c \":lua require('possession.session').load('$_session_name')\"" Enter
+      tmux new-session -Ad -s "${session_name}" -c "${path_name}"
+      tmux send-keys -t "${session_name}" "nvim -c \":lua require('possession.session').load('${_session_name}')\"" Enter
     fi
-    tmux switch-client -t "$session_name"
+    tmux switch-client -t "${session_name}"
   fi
 }
 

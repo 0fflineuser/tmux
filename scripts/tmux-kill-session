@@ -1,6 +1,13 @@
 #!/bin/bash
 
 tmux list-sessions -F '#{?session_attached,,#{session_name}}' |
-  fzf --reverse -m --header=kill-session \
+  fzf \
+    --no-border \
+    --height=100% \
+    --bind 'ctrl-/:toggle-preview' \
+    --exact \
+    --reverse \
+    --multi \
+    --header=kill-session \
     --preview 'tmux capture-pane -pt {} | bat --color=always -pl sh' |
   xargs -I {} tmux kill-session -t {}
