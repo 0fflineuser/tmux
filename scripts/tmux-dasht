@@ -4,7 +4,14 @@ docsets=($(dasht-docsets))
 declare search
 
 # fzf multiselect with tab/shift-tab for search in multiple docsets
-selection=$(printf "%s\n" "" "${docsets[@]}" | fzf --reverse -m --header=select-docset --preview="" | tr '\n' ' ') && [[ -n "$selection" ]] || exit 1
+selection=$(printf "%s\n" "" "${docsets[@]}" | fzf \
+  --no-border \
+  --height=100% \
+  --exact \
+  --reverse \
+  --multi \
+  --header=select-docset \
+  --no-preview | tr '\n' ' ') && [[ -n "$selection" ]] || exit 1
 if [[ "$selection" = " " ]]; then
   echo -e "\033[32mAll docsets selected:\033[0m ${docsets[*]}\n"
 else
