@@ -1,5 +1,9 @@
 #!/bin/bash
 
 detach_scratch_clients() {
-  tmux list-clients -F '#{client_name} #{session_name}' | awk '$2 ~ /^scratch-/ {print $2}' | xargs -r -I {} tmux detach-client -s {}
+  mapfile -t clients <<<"$(tmux list-clients -F '#{client_name} #{session_name}' | awk '$2 ~ /^scratch-/ {print $2}')"
+  for client in "${clients[@]}"; do
+    tmux detach-client -s "$client"
+  done
+
 }
