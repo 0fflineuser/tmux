@@ -2,45 +2,11 @@
 #
 # Attach or create tmux session named the same as current directory.
 #
-# # Attach
-#
 # If called with --start or without a directory name ta will create a plain
-# single window layout
-#
-# ╭──────────────────────────────────────────────────────────╮
-# │ my_project on  main [!?] via 🐍 v3.8.8 via ©conda-env   │
-# │ ❯                                                        │
-# │                                                          │
-# │                                                          │
-# │                                                          │
-# │                                                          │
-# │                                                          │
-# │                                                          │
-# │                                                          │
-# │                                                          │
-# │                                                          │
-# │                                                          │
-# ╰──────────────────────────────────────────────────────────╯
-#
-# # Split Layout
+# single window layout.
 #
 # When called to a specific directory ta will first ask which project to open
-# then attach or create anew session split with neovim on top.
-#
-# ╭──────────────────────────────────────────────────────────╮
-# │                                                          │
-# │                                                          │
-# │                          nvim                            │
-# │                                                          │
-# │                                                          │
-# ├──────────────────────────────────────────────────────────┤
-# │ my_project on  main [!?] via 🐍 v3.8.8 via ©conda-env   │
-# │ ❯                                                        │
-# │                                                          │
-# │                                                          │
-# │                                                          │
-# │                                                          │
-# ╰──────────────────────────────────────────────────────────╯
+# then attach or create a new session.
 
 not_in_tmux() {
   [ -z "$TMUX" ]
@@ -50,10 +16,14 @@ not_in_tmux() {
 DIR=$1
 
 # If no arguments are passed in try to immediately attach or start without further input
-# echo "${DIR}"
+echo "${DIR}"
 if [ -z "$DIR" ]; then
   if not_in_tmux; then
-    tmux attach && exit 1 || DIR="--start"
+    if session=$(tmux list-sessions -F "#{session_name}" | awk '!/^scratch-/{print; found=1; exit} END {exit !found}'); then
+      tmux attach -t "${session}" && exit 1
+    else
+      DIR="--start"
+    fi
   else
     exit 1
   fi
@@ -74,7 +44,6 @@ else
     --reverse \
     --header="Select project from $(basename "${DIR}") >" \
     --preview="echo ${DIR}/{} | xargs tree -C -L 1")
-  # _session_name=$(cd $DIR && ls -d */**/ | sed  "s|/$||g" | fzf --reverse --header="Select project from $(basename $DIR) >")
   session_name=${_session_name//./_}
   path_name=${DIR}/${_session_name}
 fi
@@ -120,8 +89,8 @@ create_if_needed_and_attach() {
 }
 
 attach_to_first_session() {
-  tmux attach -t "$(tmux list-sessions -F "${session_name}" | head -n 1)"
-  tmux choose-tree -Za
+  tmux attach -t "$(tmux list-sessions -F "#{session_name}" | grep -v '^scratch-' | head -n 1)"
+  tmux choose-tree -Z
 }
 
 create_if_needed_and_attach || attach_to_first_session
