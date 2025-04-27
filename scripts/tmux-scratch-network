@@ -3,18 +3,6 @@
 # shellcheck source=./utils
 source "$(dirname "$0")/utils"
 
-# Check if the current tmux session is 'scratch-network'
 current_session=$(tmux display-message -p "#{session_name}")
 
-if [[ "$current_session" == "scratch-network" ]]; then
-  # If already in the scratch-network session, detach all scratch clients
-  detach_scratch_clients
-else
-  # If scratch-network session exists, attach to it in a popup
-  if tmux has-session -t scratch-network; then
-    tmux display-popup -B -h 100% -w 100% -E 'tmux attach-session -t scratch-network'
-  else
-    # Otherwise, create the session, disable status bar, and attach
-    tmux display-popup -B -h 100% -w 100% -E "tmux new-session -d -c $HOME -s scratch-network nmtui && tmux set-option -t scratch-network status off && tmux attach-session -t scratch-network"
-  fi
-fi
+toggle_scratch_popup "$current_session" "scratch-network" "nmtui"
