@@ -5,4 +5,5 @@ source "$(dirname "$0")/utils"
 
 current_session=$(tmux display-message -p "#{session_name}")
 
-toggle_scratch_popup "$current_session" "scratch-orgmode" "nvim -c \":lua require(\\\"possession.session\\\").load(\\\"orgmode\\\")\""
+#toggle_scratch_popup "$current_session" "scratch-orgmode" "nvim -c \":lua require(\\\"possession.session\\\").load(\\\"orgmode\\\")\""
+toggle_scratch "$current_session" "scratch-orgmode" "nvim -c \":lua require(\\\"possession.session\\\").load(\\\"orgmode\\\")\""

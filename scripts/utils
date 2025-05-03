@@ -1,16 +1,43 @@
 #!/bin/bash
 
+CACHE_FILE="/tmp/tmux_scratch_ignore.cache"
+
 detach_scratch_clients() {
-  mapfile -t clients <<<"$(tmux list-clients -F '#{client_name} #{session_name}' | awk '$2 ~ /^scratch-/ {print $2}')"
+  mapfile -t ignore_clients <<<"$(cat "$CACHE_FILE" | sort | uniq)"
+  mapfile -t clients <<<"$(tmux list-clients -F '#{client_name} #{session_name}' |
+    awk '$2 ~ /^scratch-/ {print $2}')"
+
+  # TODO: move to awk above directly
+  filtered_clients=()
+
   for client in "${clients[@]}"; do
-    tmux detach-client -s "$client"
+    skip=false
+    for ignore in "${ignore_clients[@]}"; do
+      if [[ "$client" == "$ignore" ]]; then
+        skip=true
+        break
+      fi
+    done
+    if [[ "$skip" == false && -n "$client" ]]; then
+      filtered_clients+=("$client")
+    fi
   done
+
+  for popup_client in "${filtered_clients[@]}"; do
+    tmux detach-client -s "$popup_client"
+  done
+
+}
+
+attach_to_last_non_scratch_client() {
+  previous_client=$(bash -c "tmux list-sessions -F '#{session_name} #{session_last_attached}' | grep -v \"$(tmux display-message -p \"#{session_name}\")\" | grep -v "^scratch-" | sort -k2 | awk 'END {print \$1}'")
+  tmux switch-client -t "$previous_client"
 }
 
 toggle_scratch_popup() {
   num_expected_parameters=3
   if [[ "$#" -ne "$num_expected_parameters" ]]; then
-    echo "Expected "$num_expected_parameters" parameters, but got $#."
+    echo "Expected $num_expected_parameters parameters, but got $#."
     exit 1
   fi
   current_session=$1
@@ -18,8 +45,9 @@ toggle_scratch_popup() {
   command=$3
 
   if [[ "$current_session" == "$session_name" ]]; then
-    # If already in the scratch popup session, detach all scratch clients
+    # If already in the scratch session, detach all scratch clients
     detach_scratch_clients
+    attach_to_last_non_scratch_client
   else
     # If session exists, attach to it in a popup
     if tmux has-session -t "$session_name"; then
@@ -27,6 +55,34 @@ toggle_scratch_popup() {
     else
       # Otherwise, create the session, disable status bar, and attach
       tmux display-popup -B -h 100% -w 100% -E "tmux new-session -d -c $HOME -s $session_name $command && tmux set-option -t $session_name status off && tmux attach-session -t $session_name"
+    fi
+  fi
+}
+
+toggle_scratch() {
+  num_expected_parameters=3
+  if [[ "$#" -ne "$num_expected_parameters" ]]; then
+    echo "Expected $num_expected_parameters parameters, but got $#."
+    exit 1
+  fi
+  current_session=$1
+  session_name=$2
+  command=$3
+
+  if [[ "$current_session" == "$session_name" ]]; then
+    detach_scratch_clients
+    attach_to_last_non_scratch_client
+  else
+    # If session_name session exists, attach to it
+    if tmux has-session -t "$session_name"; then
+      tmux switch-client -t "$session_name"
+    else
+      # Ignore the session in detach_scratch_clients
+      echo "$session_name" >>"$CACHE_FILE"
+      # Otherwise, create the session, disable status bar, and attach
+      tmux new-session -d -c "$HOME" -s "$session_name" "$command" &&
+        tmux set-option -t "$session_name" status off &&
+        tmux switch-client -t "$session_name"
     fi
   fi
 }

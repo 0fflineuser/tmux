@@ -1,8 +1,9 @@
 #!/bin/bash
 
+#tmux list-sessions -F '#{session_name}' |
 tmux list-sessions -F '#{session_name}' | grep -v '^scratch-' |
   sed '/^$/d' |
-  fzf  \
+  fzf \
     --no-border \
     --height=100% \
     --bind 'ctrl-/:toggle-preview' \
