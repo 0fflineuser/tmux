@@ -3,6 +3,4 @@
 # shellcheck source=./utils
 source "$(dirname "$0")/utils"
 
-current_session=$(tmux display-message -p "#{session_name}")
-
-toggle_scratch_popup "$current_session" "scratch-abook" "abook"
+toggle_scratch_popup "scratch-abook" "abook"

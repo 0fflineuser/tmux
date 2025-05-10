@@ -3,6 +3,4 @@
 # shellcheck source=./utils
 source "$(dirname "$0")/utils"
 
-current_session=$(tmux display-message -p "#{session_name}")
-
-toggle_scratch "$current_session" "scratch-youtube" "magic-tape.sh"
+toggle_scratch "scratch-youtube" "magic-tape.sh"

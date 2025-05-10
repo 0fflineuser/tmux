@@ -2,6 +2,11 @@
 
 CACHE_FILE="/tmp/tmux_scratch_ignore.cache"
 
+attach_to_last_non_scratch_client() {
+  previous_client=$(bash -c "tmux list-sessions -F '#{session_name} #{session_last_attached}' | grep -v \"$(tmux display-message -p \"#{session_name}\")\" | grep -v "^scratch-" | sort -k2 | awk 'END {print \$1}'")
+  tmux switch-client -t "$previous_client"
+}
+
 detach_scratch_clients() {
   mapfile -t ignore_clients <<<"$(cat "$CACHE_FILE" | sort | uniq)"
   mapfile -t clients <<<"$(tmux list-clients -F '#{client_name} #{session_name}' |
@@ -27,27 +32,23 @@ detach_scratch_clients() {
     tmux detach-client -s "$popup_client"
   done
 
-}
-
-attach_to_last_non_scratch_client() {
-  previous_client=$(bash -c "tmux list-sessions -F '#{session_name} #{session_last_attached}' | grep -v \"$(tmux display-message -p \"#{session_name}\")\" | grep -v "^scratch-" | sort -k2 | awk 'END {print \$1}'")
-  tmux switch-client -t "$previous_client"
+  attach_to_last_non_scratch_client
 }
 
 toggle_scratch_popup() {
-  num_expected_parameters=3
+  num_expected_parameters=2
   if [[ "$#" -ne "$num_expected_parameters" ]]; then
     echo "Expected $num_expected_parameters parameters, but got $#."
     exit 1
   fi
-  current_session=$1
-  session_name=$2
-  command=$3
+
+  current_session=$(bash -c "tmux display-message -p \"#{session_name}\"")
+  session_name=$1
+  command=$2
 
   if [[ "$current_session" == "$session_name" ]]; then
     # If already in the scratch session, detach all scratch clients
     detach_scratch_clients
-    attach_to_last_non_scratch_client
   else
     # If session exists, attach to it in a popup
     if tmux has-session -t "$session_name"; then
@@ -60,18 +61,17 @@ toggle_scratch_popup() {
 }
 
 toggle_scratch() {
-  num_expected_parameters=3
+  num_expected_parameters=2
   if [[ "$#" -ne "$num_expected_parameters" ]]; then
     echo "Expected $num_expected_parameters parameters, but got $#."
     exit 1
   fi
-  current_session=$1
-  session_name=$2
-  command=$3
+  current_session=$(bash -c "tmux display-message -p \"#{session_name}\"")
+  session_name=$1
+  command=$2
 
   if [[ "$current_session" == "$session_name" ]]; then
     detach_scratch_clients
-    attach_to_last_non_scratch_client
   else
     # If session_name session exists, attach to it
     if tmux has-session -t "$session_name"; then
