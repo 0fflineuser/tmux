@@ -10,5 +10,6 @@ tmux list-sessions -F '#{?session_attached,,#{session_name}}' | awk 'NF' | grep 
     --exact \
     --reverse \
     --header jump-to-session \
+    --preview-window=border-none \
     --preview 'tmux capture-pane -pt {} | bat --color=always -pl sh' \
     --bind 'enter:execute(tmux switch-client -t {})+accept'
