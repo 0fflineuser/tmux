@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docsets=($(dasht-docsets))
+mapfile -t docsets <<<"$(dasht-docsets)"
 declare search
 
 # fzf multiselect with tab/shift-tab for search in multiple docsets
