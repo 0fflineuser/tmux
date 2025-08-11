@@ -9,7 +9,7 @@ _session_name=$(find "${DIR}" -maxdepth 1 -name '*.json' -type f -printf '%f\n' 
   --bind 'ctrl-/:toggle-preview' \
   --exact \
   --reverse \
-  --header="Select a neovim session >" \
+  --header "Select neovim session >" \
   --preview-window=border-none \
   --preview="cat ${DIR}/{}.json | jq .cwd | xargs tree -C -L 1")
 

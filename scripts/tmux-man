@@ -9,7 +9,7 @@ selection=$(printf "%s\n" "$manpages" | fzf \
   --exact \
   --reverse \
   --multi \
-  --header=select-docset \
+  --header "Open manual >" \
   --no-preview | awk '{print $1}') && [[ -n "$selection" ]] || exit 1
 
 tmux split-window -h man "${selection}"
