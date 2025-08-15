@@ -10,7 +10,7 @@ _session_name=$(find "${DIR}" -maxdepth 1 -name '*.json' -type f -printf '%f\n' 
   --exact \
   --reverse \
   --header "Select neovim session >" \
-  --preview-window=border-none \
+  --preview-window=right,70%,border-none \
   --preview="cat ${DIR}/{}.json | jq .cwd | xargs tree -C -L 1")
 
 session_name=${_session_name//./_}

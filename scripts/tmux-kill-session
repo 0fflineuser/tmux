@@ -9,6 +9,6 @@ tmux list-sessions -F '#{?session_attached,,#{session_name}}' | awk 'NF' |
     --reverse \
     --multi \
     --header "Kill session >" \
-    --preview-window=border-none \
+    --preview-window=right,70%,border-none \
     --preview 'tmux capture-pane -pt {} | bat --color=always -pl sh' |
   xargs -I {} tmux kill-session -t {}

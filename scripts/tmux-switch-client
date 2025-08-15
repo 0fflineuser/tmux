@@ -12,6 +12,6 @@ tmux list-sessions -F '#{session_name}' | awk 'NF' | grep -v '^scratch-' |
     --exact \
     --reverse \
     --header "Switch to client >" \
-    --preview-window=border-none \
+    --preview-window=right,70%,border-none \
     --preview 'tmux capture-pane -pt {} | bat --color=always -pl sh' \
     --bind 'enter:execute(tmux switch-client -t {})+accept'
