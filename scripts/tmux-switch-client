@@ -3,9 +3,20 @@
 # format='#{session_name}: #{session_windows} windows (created #{t/f/%y-%m-%d %H#:%M#:%S:window_activity})'
 # tmux ls -F "${format}"
 # tmux list-sessions -F '#{?session_attached,,#{session_name}}'
-tmux list-sessions -F '#{session_name}' | awk 'NF' | grep -v '^scratch-' |
+tmux list-sessions -F '#{session_name} #{session_attached}' |
+  awk '{
+      if ($2==1) {
+        # attached session in bold green
+        printf "\033[1;32m%s\033[0m\n", $1
+      } else {
+        # not attached session normal
+        print $1
+      }
+    }' |
+  grep -v '^scratch-' |
   sed '/^$/d' |
   fzf \
+    --ansi \
     --no-border \
     --height=100% \
     --bind 'ctrl-/:toggle-preview' \
