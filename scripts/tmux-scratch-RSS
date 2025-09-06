@@ -3,4 +3,4 @@
 # shellcheck source=./utils
 source "$(dirname "$0")/utils"
 
-toggle_scratch_popup "scratch-RSS" "newsraft"
+toggle_scratch "scratch-RSS" "newsraft"

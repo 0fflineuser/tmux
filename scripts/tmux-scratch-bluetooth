@@ -3,4 +3,4 @@
 # shellcheck source=./utils
 source "$(dirname "$0")/utils"
 
-toggle_scratch_popup "scratch-bluetooth" "bluetuith"
+toggle_scratch "scratch-bluetooth" "bluetuith"

@@ -3,4 +3,4 @@
 # shellcheck source=./utils
 source "$(dirname "$0")/utils"
 
-toggle_scratch_popup "scratch-emacs" "emacs -nw"
+toggle_scratch "scratch-emacs" "emacs -nw"
