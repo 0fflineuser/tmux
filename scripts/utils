@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CACHE_FILE="/tmp/tmux_scratch_ignore.cache"
+CACHE_FILE="${TMPDIR:-/tmp}/tmux_scratch_ignore.cache"
 
 attach_to_last_non_scratch_client() {
   previous_client=$(bash -c "tmux list-sessions -F '#{session_name} #{session_last_attached}' | grep -v \"$(tmux display-message -p \"#{session_name}\")\" | grep -v "^scratch-" | sort -k2 | awk 'END {print \$1}'")
