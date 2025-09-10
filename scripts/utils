@@ -35,35 +35,6 @@ detach_scratch_clients() {
   attach_to_last_non_scratch_client
 }
 
-toggle_scratch_popup() {
-  num_expected_parameters=2
-  if [[ "$#" -ne "$num_expected_parameters" ]]; then
-    echo "Expected $num_expected_parameters parameters, but got $#."
-    exit 1
-  fi
-
-  if ! command -v "${2%% *}" >/dev/null 2>&1; then
-    exit 1
-  fi
-
-  current_session=$(bash -c "tmux display-message -p \"#{session_name}\"")
-  session_name=$1
-  command=$2
-
-  if [[ "$current_session" == "$session_name" ]]; then
-    # If already in the scratch session, detach all scratch clients
-    detach_scratch_clients
-  else
-    # If session exists, attach to it in a popup
-    if tmux has-session -t "$session_name"; then
-      tmux display-popup -B -h 100% -w 100% -E "tmux attach-session -t $session_name"
-    else
-      # Otherwise, create the session, disable status bar, and attach
-      tmux display-popup -B -h 100% -w 100% -E "tmux new-session -d -c $HOME -s $session_name $command && tmux set-option -t $session_name status off && tmux attach-session -t $session_name"
-    fi
-  fi
-}
-
 toggle_scratch() {
   num_expected_parameters=2
   if [[ "$#" -ne "$num_expected_parameters" ]]; then
