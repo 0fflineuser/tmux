@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # Remember current session if we're inside tmux
-last_session=""
+current_session=""
 if [ -n "${TMUX-}" ]; then
-  last_session=$(tmux display-message -p '#S')
+  current_session=$(tmux display-message -p '#S')
 fi
 
 # Pick sessions to kill
@@ -36,29 +36,31 @@ sessions_to_kill="$(
 # If nothing selected, exit quietly
 [ -z "$sessions_to_kill" ] && exit 0
 
-
 # TODO: Use a tmux hooks instead of the following ?
 
 # If we're inside tmux and our current session is going to be killed,
 # switch to a different session first (or create a rescue one).
-if [ -n "${TMUX-}" ] && printf '%s\n' "$sessions_to_kill" | grep -Fxq "$last_session"; then
-  # Find a session not selected for killing
-  alt_session="$(
-    tmux list-sessions -F '#S' | while IFS= read -r s; do
-      if ! printf '%s\n' "$sessions_to_kill" | grep -Fxq "$s"; then
-        printf '%s\n' "$s"
-        break
-      fi
-    done
-  )"
+if [ -n "${TMUX-}" ]; then
+  alt_session=""
 
-  if [ -z "$alt_session" ]; then
-    # No safe session exists; create a rescue session
-    alt_session="rescue-$(date +%s)"
-    tmux new-session -ds "$alt_session"
+  if printf '%s\n' "$sessions_to_kill" | grep -Fxq "$current_session"; then
+    alt_session="$(
+      tmux list-sessions -F '#S' | while IFS= read -r s; do
+        if ! printf '%s\n' "$sessions_to_kill" | grep -Fxq "$s"; then
+          printf '%s\n' "$s"
+          break
+        fi
+      done
+    )"
+
+    # Rescue
+    if [ -z "$alt_session" ]; then
+      alt_session="rescue-$(date +%s)"
+      tmux new-session -ds "$alt_session" -c "$HOME"
+    fi
+    tmux switch-client -t "$alt_session"
   fi
 
-  tmux switch-client -t "$alt_session"
 fi
 
 # Kill the selected sessions
