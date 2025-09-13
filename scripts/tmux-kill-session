@@ -36,8 +36,6 @@ sessions_to_kill="$(
 # If nothing selected, exit quietly
 [ -z "$sessions_to_kill" ] && exit 0
 
-# TODO: Use a tmux hooks instead of the following ?
-
 # If we're inside tmux and our current session is going to be killed,
 # switch to a different session first (or create a rescue one).
 if [ -n "${TMUX-}" ]; then
