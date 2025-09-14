@@ -8,7 +8,7 @@ selection=$(printf "%s\n" "$manpages" | fzf \
   --bind 'ctrl-/:toggle-preview' \
   --exact \
   --reverse \
-  --multi \
+  --cycle \
   --header "Open manual >" \
   --no-preview | awk '{print $1}') && [[ -n "$selection" ]] || exit 1
 

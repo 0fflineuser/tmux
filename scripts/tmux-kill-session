@@ -27,6 +27,7 @@ sessions_to_kill="$(
       --exact \
       --reverse \
       --multi \
+      --cycle \
       --header "Kill session >" \
       --preview-window=right,70%,border-none \
       --preview 'tmux capture-pane -pt {} | bat --color=always -pl sh' ||

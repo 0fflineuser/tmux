@@ -10,6 +10,7 @@ selection=$(printf "%s\n" "" "${docsets[@]}" | fzf \
   --exact \
   --reverse \
   --multi \
+  --cycle \
   --header "Select dasht docset (Select the empty line for all docset) >" \
   --no-preview | tr '\n' ' ') && [[ -n "$selection" ]] || exit 1
 if [[ "$selection" = " " ]]; then
