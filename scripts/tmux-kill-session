@@ -59,7 +59,6 @@ if [ -n "${TMUX-}" ]; then
     fi
     tmux switch-client -t "$alt_session"
   fi
-
 fi
 
 # Kill the selected sessions
