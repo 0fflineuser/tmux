@@ -1,23 +1,17 @@
 #!/bin/bash
 set -euo pipefail
 
-# Remember current session if we're inside tmux
-current_session=""
-if [ -n "${TMUX-}" ]; then
-  current_session=$(tmux display-message -p '#S')
-fi
+get_current_tmux_session() {
+  [[ -n "${TMUX:-}" ]] && tmux display-message -p '#S' || echo ""
+}
 
-# Pick sessions to kill
-sessions_to_kill="$(
+choose_sessions_to_kill() {
   tmux list-sessions -F '#{session_name} #{session_attached}' |
     awk '{
-      if ($2==1) {
-        # attached session in bold green
-        printf "\033[38;5;223m%s\033[0m\n", $1
-      } else {
-        # not attached session normal
-        print $1
-      }
+      if ($2==1)
+        printf "\033[38;5;223m%s\033[0m\n", $1;
+      else
+        print $1;
     }' | sort -r |
     fzf \
       --ansi \
@@ -32,36 +26,54 @@ sessions_to_kill="$(
       --preview-window=right,70%,border-none \
       --preview 'tmux capture-pane -pt {} | bat --color=always -pl sh' ||
     true
-)"
+}
 
-# If nothing selected, exit quietly
-[ -z "$sessions_to_kill" ] && exit 0
+switch_tmux_client_if_needed() {
+  local current_session="$1"
+  local sessions_to_kill="$2"
 
-# If we're inside tmux and our current session is going to be killed,
-# switch to a different session first (or create a rescue one).
-if [ -n "${TMUX-}" ]; then
-  alt_session=""
+  if [[ -z "${TMUX:-}" ]]; then
+    return
+  fi
 
   if printf '%s\n' "$sessions_to_kill" | grep -Fxq "$current_session"; then
-    alt_session="$(
-      tmux list-sessions -F '#S' | while IFS= read -r s; do
-        if ! printf '%s\n' "$sessions_to_kill" | grep -Fxq "$s"; then
-          printf '%s\n' "$s"
-          break
-        fi
-      done
-    )"
+    # Find alternate session
+    local alt_session=""
+    while read -r s; do
+      if ! printf '%s\n' "$sessions_to_kill" | grep -Fxq "$s"; then
+        alt_session="$s"
+        break
+      fi
+    done < <(tmux list-sessions -F '#S')
 
-    # Rescue
-    if [ -z "$alt_session" ]; then
+    # If no alternate session found, create a rescue one
+    if [[ -z "$alt_session" ]]; then
       alt_session="rescue-$(date +%s)"
       tmux new-session -ds "$alt_session" -c "$HOME"
     fi
+
     tmux switch-client -t "$alt_session"
   fi
-fi
+}
 
-# Kill the selected sessions
-while IFS= read -r s; do
-  [ -n "$s" ] && tmux kill-session -t "$s"
-done <<<"$sessions_to_kill"
+kill_tmux_sessions() {
+  local sessions_to_kill="$1"
+  while IFS= read -r s; do
+    [[ -n "$s" ]] && tmux kill-session -t "$s"
+  done <<<"$sessions_to_kill"
+}
+
+main() {
+  local current_session
+  current_session="$(get_current_tmux_session)"
+
+  local sessions_to_kill
+  sessions_to_kill="$(choose_sessions_to_kill)"
+
+  [[ -z "$sessions_to_kill" ]] && exit 0
+
+  switch_tmux_client_if_needed "$current_session" "$sessions_to_kill"
+  kill_tmux_sessions "$sessions_to_kill"
+}
+
+main "$@"
