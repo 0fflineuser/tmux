@@ -74,7 +74,7 @@ main() {
   if [[ -z "${arg}" ]]; then
     if not_in_tmux; then
       local first_session
-      first_session="$(tmux list-sessions -F "#{session_name}" | awk '!/^scratch-/{print; found=1; exit} END {exit !found}')"
+      first_session="$(tmux list-sessions -F "#{session_name}" | awk '!/^scratch-/{print; found=1; exit} END {exit !found}' || true)"
       if [[ -n "${first_session}" ]]; then
         tmux attach -t "${first_session}"
         exit
