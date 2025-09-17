@@ -1,108 +1,118 @@
-#!/bin/bash
-#
-# Attach or create tmux session named the same as current directory.
-#
-# If called with --start or without a directory name ta will create a plain
-# single window layout.
-#
-# When called to a specific directory ta will first ask which project to open
-# then attach or create a new session.
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ta: Attach to or create a tmux session named after a project or subdirectory.
+
+################################
+# Utility / Helper Functions
+################################
 
 not_in_tmux() {
-  [ -z "$TMUX" ]
+  [[ -z "${TMUX:-}" ]] && [[ -z "${ZELLIJ:-}" ]]
 }
-[ -z "$TMUX" ] && [ -z "$ZELLIJ" ]
 
-DIR=$1
+# Attach to the first available session (exclude 'scratch-*' if present)
+attach_to_first_session() {
+  local s
+  s="$(tmux list-sessions -F "#{session_name}" | grep -v '^scratch-' | head -n 1 || true)"
+  [[ -n "${s}" ]] && tmux attach -t "${s}"
+}
 
-# If no arguments are passed in try to immediately attach or start without further input
-echo "${DIR}"
-if [ -z "$DIR" ]; then
-  if not_in_tmux; then
-    if session=$(tmux list-sessions -F "#{session_name}" | awk '!/^scratch-/{print; found=1; exit} END {exit !found}'); then
-      tmux attach -t "${session}" && exit 1
-    else
-      DIR="--start"
-    fi
-  else
-    exit 1
-  fi
-fi
-
-# If --start was passed in immediately start a new session based on the current directory
-if [ "${DIR}" == "--start" ]; then
-  echo "starting"
-  path_name="$(basename "$PWD" | tr . -)"
-  session_name=${path_name//./_}
-else
-  # ask the user which directory to start in
-  _session_names=$(find "${DIR}" -mindepth 1 -maxdepth 1 -type d ! -name ".*" -printf "%f\n" | fzf \
-    --multi \
-    --no-border \
-    --height=100% \
-    --bind 'ctrl-/:toggle-preview' \
-    --exact \
-    --reverse \
-    --cycle \
-    --header="Select project(s) from $(basename "${DIR}") >" \
-    --preview-window=right,70%,border-none \
-    --preview="echo ${DIR}/{} | xargs tree -C -L 1")
-
-  if [ -z "${_session_names}" ]; then
-    exit 1
-  fi
-
-  IFS=$'\n' read -d '' -r -a selected_sessions <<<"${_session_names}"
-  if [ ${#selected_sessions[@]} -gt 1 ]; then
-    # Open multiple session but doesn't switch
-    for sel in "${selected_sessions[@]}"; do
-      sname=${sel//./_}
-      pname=${DIR}/${sel}
-      echo "Creating/attaching session name: $sname  path: $pname"
-      tmux new-session -Ad -s "$sname" -c "$pname"
-    done
-    exit 0
-  else
-    session_name=${selected_sessions[0]//./_}
-    path_name=${DIR}/${selected_sessions[0]}
-  fi
-fi
-
-if [ -z "${session_name}" ]; then
-  # operation cancelled by user
-  exit 1
-fi
-
+# Create a detached session (optionally with Neovim open)
 create_detached_session() {
-  if [ "${DIR}" == "--start" ]; then
-    (
-      TMUX=''
-      tmux new-session -Ad -s "${session_name}" -c "${path_name}"
-    )
+  local session_name="${1}"
+  local path_name="${2}"
+  if [[ "${START_MODE}" == "1" ]]; then
+    TMUX='' tmux new-session -Ad -s "${session_name}" -c "${path_name}"
   else
-    (
-      TMUX=''
-      tmux new-session -Ad -s "${session_name}" -c "${path_name}"
-      # tmux split-window -vb -t "$session_name" -c $path_name -p 70;
-      tmux send-keys -t "${session_name}" "nvim '+Telescope find_files'" Enter
-    )
+    TMUX='' tmux new-session -Ad -s "${session_name}" -c "${path_name}"
+    tmux send-keys -t "${session_name}" "nvim '+Telescope find_files'" Enter
   fi
 }
 
-create_if_needed_and_attach() {
+# Create and attach to tmux session
+create_and_attach_session() {
+  local session_name="${1}"
+  local path_name="${2}"
   if not_in_tmux; then
-    tmux new-session -As "${session_name}" -c "${path_name}"
+    create_detached_session "${session_name}" "${path_name}"
+    tmux attach -t "${session_name}"
   else
-    if ! tmux has-session -t "=${session_name}"; then
-      create_detached_session
+    if ! tmux has-session -t "=${session_name}" 2>/dev/null; then
+      create_detached_session "${session_name}" "${path_name}"
     fi
     tmux switch-client -t "${session_name}"
   fi
 }
 
-attach_to_first_session() {
-  tmux attach -t "$(tmux list-sessions -F "#{session_name}" | grep -v '^scratch-' | head -n 1)"
-  tmux choose-tree -Z
+select_sessions() {
+  local path="${1}"
+  find "${path}" -mindepth 1 -maxdepth 1 -type d ! -name ".*" -printf "%f\n" | fzf \
+    --multi --no-border --height=100% --bind 'ctrl-/:toggle-preview' \
+    --exact --reverse --cycle \
+    --header="Select project(s) from $(basename "$arg") >" \
+    --preview-window=right,70%,border-none \
+    --preview="echo ${arg}/{} | xargs tree -C -L 1"
+
 }
 
-create_if_needed_and_attach || attach_to_first_session
+################################
+# Main Logic
+################################
+
+main() {
+  local arg="${1:-}"
+  local session_name path_name START_MODE=0
+
+  # No arguments provided
+  if [[ -z "${arg}" ]]; then
+    if not_in_tmux; then
+      local first_session
+      first_session="$(tmux list-sessions -F "#{session_name}" | awk '!/^scratch-/{print; found=1; exit} END {exit !found}')"
+      if [[ -n "${first_session}" ]]; then
+        tmux attach -t "${first_session}"
+        exit
+      else
+        arg="--start"
+      fi
+    else
+      exit
+    fi
+  fi
+
+  # --start: plain new session in PWD
+  if [[ "${arg}" == "--start" ]]; then
+    START_MODE=1
+    path_name="${PWD}"
+    session_name="$(basename "${PWD}" | tr . _)"
+  else
+    # Prompt user with fzf to pick projects inside directory
+    local selection=$(select_sessions "${arg}")
+
+    [[ -z "${selection}" ]] && exit
+
+    # IFS=$'\n' read -r -a selected_sessions <<<"$selection"
+    mapfile -t selected_sessions <<<"${selection}"
+
+    if ((${#selected_sessions[@]} > 1)); then
+      # Spawn all sessions (no automatic attach)
+      for project in "${selected_sessions[@]}"; do
+        session_name="${project//./_}"
+        path_name="${arg}/${project}"
+        create_detached_session "${session_name}" "${path_name}"
+      done
+      exit
+    else
+      session_name="${selected_sessions[0]//./_}"
+      path_name="${arg}/${selected_sessions[0]}"
+    fi
+  fi
+
+  [[ -z "${session_name}" ]] && exit
+
+  if ! create_and_attach_session "${session_name}" "${path_name}"; then
+    attach_to_first_session
+  fi
+}
+
+main "$@"
