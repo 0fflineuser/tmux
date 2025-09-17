@@ -49,7 +49,10 @@ switch_tmux_client_if_needed() {
     # If no alternate session found, create a rescue one
     if [[ -z "$alt_session" ]]; then
       alt_session="rescue-$(date +%s)"
-      tmux new-session -ds "$alt_session" -c "$HOME"
+      (
+        TMUX=''
+        tmux new-session -ds "$alt_session" -c "$HOME"
+      )
     fi
 
     tmux switch-client -t "$alt_session"

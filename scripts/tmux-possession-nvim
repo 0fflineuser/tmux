@@ -40,8 +40,11 @@ create_session() {
   local possession_session_cwd="${3}"
 
   if ! session_exists "${tmux_session_name}"; then
-    tmux new-session -Ad -s "${tmux_session_name}" -c "${possession_session_cwd}"
-    tmux send-keys -t "${tmux_session_name}" "nvim -c ':lua require(\"possession.session\").load(\"${possession_session_name}\")'" Enter
+    (
+      TMUX=''
+      tmux new-session -Ad -s "${tmux_session_name}" -c "${possession_session_cwd}"
+      tmux send-keys -t "${tmux_session_name}" "nvim -c ':lua require(\"possession.session\").load(\"${possession_session_name}\")'" Enter
+    )
   fi
 
 }
