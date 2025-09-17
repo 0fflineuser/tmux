@@ -68,18 +68,10 @@ else
   fi
 fi
 
-echo session name is "${session_name}"
-echo path name is "${path_name}"
-
 if [ -z "${session_name}" ]; then
   # operation cancelled by user
   exit 1
 fi
-
-session_exists() {
-  # checks if the $session_name exists
-  tmux has-session -t "=${session_name}"
-}
 
 create_detached_session() {
   if [ "${DIR}" == "--start" ]; then
@@ -101,7 +93,7 @@ create_if_needed_and_attach() {
   if not_in_tmux; then
     tmux new-session -As "${session_name}" -c "${path_name}"
   else
-    if ! session_exists; then
+    if ! tmux has-session -t "=${session_name}"; then
       create_detached_session
     fi
     tmux switch-client -t "${session_name}"

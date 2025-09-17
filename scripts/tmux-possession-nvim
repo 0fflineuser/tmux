@@ -1,23 +1,36 @@
 #!/bin/bash
-# Inspired by https://github.com/WaylonWalker/devtainer/blob/main/bin/.local/bin/ta
-
 DIR="$HOME/.local/share/nvim/possession"
 
-_session_name=$(find "${DIR}" -maxdepth 1 -name '*.json' -type f -printf '%f\n' | sed 's/.json$//' | fzf \
+_session_names=$(find "${DIR}" -maxdepth 1 -name '*.json' -type f -printf '%f\n' | sed 's/.json$//' | fzf \
   --no-border \
   --height=100% \
   --bind 'ctrl-/:toggle-preview' \
   --exact \
   --reverse \
   --cycle \
+  --multi \
   --header "Select neovim session >" \
   --preview-window=right,70%,border-none \
   --preview="cat ${DIR}/{}.json | jq .cwd | xargs tree -C -L 1")
 
-session_name=${_session_name//./_}
-
-if [ -z "${session_name}" ]; then
+if [ -z "${_session_names}" ]; then
   exit 1
+fi
+
+IFS=$'\n' read -d '' -r -a selected_sessions <<<"${_session_names}"
+
+if [ ${#selected_sessions[@]} -gt 1 ]; then
+  # Open multiple session but doesn't switch
+  for sel in "${selected_sessions[@]}"; do
+    sname=${sel//./_}
+    pname=${DIR}/${sel}
+    echo "Creating/attaching session name: $sname  path: $pname"
+    tmux new-session -Ad -s "$sname" -c "$pname"
+  done
+  exit 0
+else
+  session_name=${selected_sessions[0]//./_}
+  path_name=${DIR}/${selected_sessions[0]}
 fi
 
 not_in_tmux() {
@@ -28,20 +41,14 @@ session_exists() {
   tmux has-session -t "=${session_name}" 2>/dev/null
 }
 
-path_name=$(jq -r '.cwd' "${DIR}/${_session_name}.json")
-
 create_if_needed_and_attach() {
+  if ! session_exists; then
+    tmux new-session -Ad -s "${session_name}" -c "${path_name}"
+    tmux send-keys -t "${session_name}" "nvim -c \":lua require('possession.session').load('${session_name}')\"" Enter
+  fi
   if not_in_tmux; then
-    if ! session_exists; then
-      tmux new-session -Ad -s "${session_name}" -c "${path_name}"
-      tmux send-keys -t "${session_name}" "nvim -c \":lua require('possession.session').load('${_session_name}')\"" Enter
-    fi
     tmux new-session -As "${session_name}" -c "${path_name}"
   else
-    if ! session_exists; then
-      tmux new-session -Ad -s "${session_name}" -c "${path_name}"
-      tmux send-keys -t "${session_name}" "nvim -c \":lua require('possession.session').load('${_session_name}')\"" Enter
-    fi
     tmux switch-client -t "${session_name}"
   fi
 }
