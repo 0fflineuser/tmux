@@ -1,56 +1,84 @@
 #!/bin/bash
-DIR="$HOME/.local/share/nvim/possession"
+set -euo pipefail
 
-_session_names=$(find "${DIR}" -maxdepth 1 -name '*.json' -type f -printf '%f\n' | sed 's/.json$//' | fzf \
-  --no-border \
-  --height=100% \
-  --bind 'ctrl-/:toggle-preview' \
-  --exact \
-  --reverse \
-  --cycle \
-  --multi \
-  --header "Select neovim session >" \
-  --preview-window=right,70%,border-none \
-  --preview="cat ${DIR}/{}.json | jq .cwd | xargs tree -C -L 1")
+SESSION_DIR="$HOME/.local/share/nvim/possession"
 
-if [ -z "${_session_names}" ]; then
-  exit 1
-fi
-
-IFS=$'\n' read -d '' -r -a selected_sessions <<<"${_session_names}"
-
-if [ ${#selected_sessions[@]} -gt 1 ]; then
-  # Open multiple session but doesn't switch
-  for sel in "${selected_sessions[@]}"; do
-    sname=${sel//./_}
-    pname=${DIR}/${sel}
-    echo "Creating/attaching session name: $sname  path: $pname"
-    tmux new-session -Ad -s "$sname" -c "$pname"
-  done
-  exit 0
-else
-  session_name=${selected_sessions[0]//./_}
-  path_name=${DIR}/${selected_sessions[0]}
-fi
+select_sessions() {
+  find "$SESSION_DIR" -maxdepth 1 -name '*.json' -type f -printf '%f\n' |
+    sed 's/\.json$//' |
+    fzf \
+      --no-border \
+      --height=100% \
+      --bind 'ctrl-/:toggle-preview' \
+      --exact \
+      --reverse \
+      --cycle \
+      --multi \
+      --header "Select neovim session >" \
+      --preview-window=right,70%,border-none \
+      --preview="cat $SESSION_DIR/{}.json | jq .cwd | xargs tree -C -L 1"
+}
 
 not_in_tmux() {
-  [ -z "$TMUX" ]
+  [[ -z "${TMUX:-}" ]]
 }
 
 session_exists() {
-  tmux has-session -t "=${session_name}" 2>/dev/null
+  tmux has-session -t "=${1}" 2>/dev/null
 }
 
-create_if_needed_and_attach() {
-  if ! session_exists; then
-    tmux new-session -Ad -s "${session_name}" -c "${path_name}"
-    tmux send-keys -t "${session_name}" "nvim -c \":lua require('possession.session').load('${session_name}')\"" Enter
+attach_session() {
+  local tmux_session_name="$1"
+  if ! not_in_tmux; then
+    tmux switch-client -t "$tmux_session_name"
   fi
-  if not_in_tmux; then
-    tmux new-session -As "${session_name}" -c "${path_name}"
+}
+
+create_session() {
+  local tmux_session_name="$1"
+  local possession_session_name="$2"
+  local possession_session_cwd="$3"
+
+  if ! session_exists "$tmux_session_name"; then
+    tmux new-session -Ad -s "$tmux_session_name" -c "$possession_session_cwd"
+    tmux send-keys -t "$tmux_session_name" "nvim -c ':lua require(\"possession.session\").load(\"$possession_session_name\")'" Enter
+  fi
+
+}
+
+# For single-session: ensure tmux session and attach or switch to it
+create_and_attach_session() {
+  local possession_session_name="$1"
+  local tmux_session_name="${possession_session_name//./_}"
+  local possession_session_cwd=$(jq -r '.cwd' "${SESSION_DIR}/${possession_session_name}.json")
+
+  create_session "$tmux_session_name" "$possession_session_name" "$possession_session_cwd"
+  attach_session "$tmux_session_name"
+}
+
+# For multi-session: create or attach all, don't switch
+create_sessions_multi() {
+  for sel in "$@"; do
+    local possession_session_name="$sel"
+    local tmux_session_name="${possession_session_name//./_}"
+    local possession_session_cwd=$(jq -r '.cwd' "${SESSION_DIR}/${possession_session_name}.json")
+    create_session "$tmux_session_name" "$possession_session_name" "$possession_session_cwd"
+  done
+}
+
+main() {
+  local selection
+  selection=$(select_sessions)
+  [[ -z "${selection:-}" ]] && exit 1
+
+  readarray -t selected_sessions <<<"$selection"
+
+  if ((${#selected_sessions[@]} > 1)); then
+    create_sessions_multi "${selected_sessions[@]}"
+    exit 0
   else
-    tmux switch-client -t "${session_name}"
+    create_and_attach_session "${selected_sessions[0]}"
   fi
 }
 
-create_if_needed_and_attach
+main "$@"
