@@ -40,13 +40,12 @@ create_detached_session() {
 create_and_attach_session() {
   local session_name="${1}"
   local path_name="${2}"
-  if not_in_tmux; then
+  if ! tmux has-session -t "=${session_name}" 2>/dev/null; then
     create_detached_session "${session_name}" "${path_name}"
+  fi
+  if not_in_tmux; then
     tmux attach -t "${session_name}"
   else
-    if ! tmux has-session -t "=${session_name}" 2>/dev/null; then
-      create_detached_session "${session_name}" "${path_name}"
-    fi
     tmux switch-client -t "${session_name}"
   fi
 }
@@ -55,10 +54,11 @@ select_sessions() {
   local path="${1}"
   find "${path}" -mindepth 1 -maxdepth 1 -type d ! -name ".*" -printf "%f\n" | fzf \
     --multi --no-border --height=100% --bind 'ctrl-/:toggle-preview' \
+    --expect enter,alt-enter \
     --exact --reverse --cycle \
-    --header="Select project(s) from $(basename "$arg") >" \
+    --header="Select project(s) from $(basename "${path}") >" \
     --preview-window=right,70%,border-none \
-    --preview="echo ${arg}/{} | xargs tree -C -L 1"
+    --preview="echo ${path}/{} | xargs tree -C -L 1"
 
 }
 
@@ -93,9 +93,12 @@ main() {
     session_name="$(basename "${PWD}" | tr . _)"
   else
     # Prompt user with fzf to pick projects inside directory
-    local selection=$(select_sessions "${arg}")
+    local result key selection
+    result=$(select_sessions "${arg}")
+    key=$(head -1 <<<"$result")
+    selection=$(tail -n +2 <<<"${result}")
 
-    [[ -z "${selection}" ]] && exit
+    [[ -z "${result}" ]] && exit
 
     # IFS=$'\n' read -r -a selected_sessions <<<"$selection"
     mapfile -t selected_sessions <<<"${selection}"
@@ -116,9 +119,21 @@ main() {
 
   [[ -z "${session_name}" ]] && exit
 
-  if ! create_and_attach_session "${session_name}" "${path_name}"; then
-    attach_to_first_session
+  if [[ -v "${key:-}" ]]; then
+    case "${key}" in
+    "enter")
+      create_and_attach_session "${session_name}" "${path_name}"
+      ;;
+    "alt-enter")
+      create_detached_session "${session_name}" "${path_name}"
+      ;;
+    esac
+  else
+    if ! create_and_attach_session "${session_name}" "${path_name}"; then
+      attach_to_first_session
+    fi
   fi
+
 }
 
 main "$@"
