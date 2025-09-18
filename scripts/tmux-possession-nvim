@@ -7,9 +7,9 @@ select_sessions() {
   find "${SESSION_DIR}" -maxdepth 1 -name '*.json' -type f -printf '%f\n' |
     sed 's/\.json$//' |
     fzf \
+      --expect enter,alt-enter \
       --no-border \
       --height=100% \
-      --bind 'ctrl-/:toggle-preview' \
       --exact \
       --reverse \
       --cycle \
@@ -70,8 +70,10 @@ create_sessions_multi() {
 }
 
 main() {
-  local selection
-  selection=$(select_sessions)
+  local selection result key
+  result=$(select_sessions)
+  key=$(head -n 1 <<<"${result}")
+  selection=$(tail -n +2 <<<"${result}")
   [[ -z "${selection:-}" ]] && exit 1
 
   readarray -t selected_sessions <<<"$selection"
@@ -80,7 +82,14 @@ main() {
     create_sessions_multi "${selected_sessions[@]}"
     exit 0
   else
-    create_and_attach_session "${selected_sessions[0]}"
+    local possession_session_name="${selected_sessions[0]}"
+    local tmux_session_name="${possession_session_name//./_}"
+    local possession_session_cwd=$(jq -r '.cwd' "${SESSION_DIR}/${possession_session_name}.json")
+    create_session "${tmux_session_name}" "${possession_session_name}" "${possession_session_cwd}"
+
+    if [[ "${key:-}" == "enter" ]]; then
+      attach_session "${tmux_session_name}"
+    fi
   fi
 }
 

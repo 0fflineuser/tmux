@@ -53,7 +53,7 @@ create_and_attach_session() {
 select_sessions() {
   local path="${1}"
   find "${path}" -mindepth 1 -maxdepth 1 -type d ! -name ".*" -printf "%f\n" | fzf \
-    --multi --no-border --height=100% --bind 'ctrl-/:toggle-preview' \
+    --multi --no-border --height=100% \
     --expect enter,alt-enter \
     --exact --reverse --cycle \
     --header="Select project(s) from $(basename "${path}") >" \
