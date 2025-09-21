@@ -7,9 +7,11 @@ selection=$(printf "%s\n" "$manpages" | fzf \
   --height=100% \
   --bind 'ctrl-/:toggle-preview' \
   --exact \
+  --nth=1 \
   --reverse \
   --cycle \
   --header "Open manual >" \
-  --no-preview | awk '{print $1}') && [[ -n "$selection" ]] || exit 1
+  --preview 'man {1}' \
+  --preview-window 'right,50%,border-left' | awk '{print $1}') && [[ -n "$selection" ]] || exit 1
 
 tmux split-window -h man "${selection}"
