@@ -12,7 +12,9 @@ choose_sessions_to_kill() {
         printf "\033[38;5;223m%s\033[0m\n", $1;
       else
         print $1;
-    }' | sort -r |
+    }' |
+    grep -v '^scratch-' |
+    sort -r |
     fzf \
       --ansi \
       --no-border \
