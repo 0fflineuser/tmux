@@ -8,7 +8,7 @@ get_current_tmux_session() {
 choose_sessions_to_kill() {
   tmux list-sessions -F '#{session_name} #{session_attached}' |
     awk '{
-      if ($2==1)
+      if ($2>=1)
         printf "\033[38;5;223m%s\033[0m\n", $1;
       else
         print $1;
