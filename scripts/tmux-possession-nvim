@@ -4,9 +4,19 @@ set -euo pipefail
 SESSION_DIR="$HOME/.local/share/nvim/possession"
 
 select_sessions() {
+  local attached_sessions
+  attached_sessions=$(tmux list-sessions -F '#{session_name} #{session_attached}')
   find "${SESSION_DIR}" -maxdepth 1 -name '*.json' -type f -printf '%f\n' |
     sed 's/\.json$//' |
+    while IFS= read -r session_name; do
+      if echo "${attached_sessions}" | grep -q "^${session_name} 1$"; then
+        printf "\033[38;5;223m%s\033[0m\n" "${session_name}"
+      else
+        echo "${session_name}"
+      fi
+    done |
     fzf \
+      --ansi \
       --expect enter,alt-enter \
       --no-border \
       --height=100% \
