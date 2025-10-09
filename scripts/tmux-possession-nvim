@@ -11,6 +11,8 @@ select_sessions() {
     while IFS= read -r session_name; do
       if echo "${attached_sessions}" | grep -q "^${session_name} 1$"; then
         printf "\033[38;5;223m%s\033[0m\n" "${session_name}"
+      elif echo "${attached_sessions}" | grep -q "^${session_name} 0$"; then
+        printf "\033[1;32m%s\033[0m\n" "${session_name}"
       else
         echo "${session_name}"
       fi
