@@ -13,7 +13,7 @@ choose_sessions_to_kill() {
       else
         print $1;
     }' |
-    grep -v '^scratch-' |
+    # grep -v '^scratch-' |
     sort -r |
     fzf \
       --ansi \
